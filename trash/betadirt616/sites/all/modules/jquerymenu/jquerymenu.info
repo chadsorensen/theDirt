@@ -1,0 +1,11 @@
+; $Id: jquerymenu.info,v 1.3 2009/11/16 08:44:48 aaronhawkins Exp $ 
+name = Jquery Menu
+description = Enables expandable jquery menus.
+package = Advanced Navigation Pack
+core = 6.x
+; Information added by drupal.org packaging script on 2009-11-16
+version = "6.x-3.0"
+core = "6.x"
+project = "jquerymenu"
+datestamp = "1258361451"
+

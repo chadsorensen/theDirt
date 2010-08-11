@@ -1,0 +1,76 @@
+# $Id: nl.po,v 1.1.2.1 2009/06/05 00:03:25 danielb Exp $
+#
+# Dutch translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  blockreference.module,v 1.1.4.8 2009/04/24 03:40:03 danielb
+#  blockreference.info,v 1.1.4.4 2009/03/28 03:07:14 danielb
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2009-05-28 16:24+0200\n"
+"PO-Revision-Date: 2009-05-28 16:26+0100\n"
+"Last-Translator: L.B. Cohn <lichai@999games.nl>\n"
+"Language-Team: Dutch <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+
+#: blockreference.module:63
+msgid "Block reference"
+msgstr "Blokreferentie"
+
+#: blockreference.module:64
+msgid "Store the ID of a related block as an integer value."
+msgstr "Bewaar de ID van een gerelateerd blok als een integer-waarde."
+
+#: blockreference.module:84
+msgid "Regions containing blocks that can be referenced"
+msgstr "Regio's die blokken bevatten die kunnen worden gerefereerd"
+
+#: blockreference.module:132
+msgid "%name : This block can't be referenced."
+msgstr "%name: Dit blok kan niet worden gerefereerd."
+
+#: blockreference.module:157
+msgid "Default"
+msgstr "Standaard"
+
+#: blockreference.module:218
+msgid "Select list"
+msgstr "Selectielijst"
+
+#: blockreference.module:226
+msgid "Autocomplete text field"
+msgstr "Automatisch aanvullend tekstveld"
+
+#: blockreference.module:444
+msgid "%name: Title mismatch. Please check your selection."
+msgstr "5name: Titel klopt niet. Controleer je selectie."
+
+#: blockreference.module:471
+msgid "none"
+msgstr "geen"
+
+#: blockreference.module:15
+msgid "Blockreference autocomplete"
+msgstr "Blokreferentie automatisch aanvullen"
+
+#: blockreference.module:0
+msgid "blockreference"
+msgstr "blokreferentie"
+
+#: blockreference.info:0
+msgid "Block Reference"
+msgstr "Blokreferentie"
+
+#: blockreference.info:0
+msgid "Defines a field type for referencing a block from a node."
+msgstr "Levert een veldtype for het refereren van een blok vanuit een node."
+
+#: blockreference.info:0
+msgid "CCK"
+msgstr "CCK"
+

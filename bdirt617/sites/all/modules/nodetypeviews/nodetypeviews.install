@@ -1,0 +1,9 @@
+<?php
+// $Id: nodetypeviews.install,v 1.1 2008/08/30 22:54:39 yaph Exp $
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function nodetypeviews_uninstall() {
+  variable_del('nodetypeviews_node_types');
+}

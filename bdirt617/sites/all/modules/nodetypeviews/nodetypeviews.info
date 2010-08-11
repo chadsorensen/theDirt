@@ -1,0 +1,9 @@
+name = Node Type Views
+description = "Node Type Views creates teaser views and RSS feeds for published content by content type."
+core = 6.x
+; Information added by drupal.org packaging script on 2008-08-31
+version = "6.x-1.0-beta1"
+core = "6.x"
+project = "nodetypeviews"
+datestamp = "1220211913"
+

@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+  <title><?php print $head_title ?></title>
+  <?php print $head ?>
+  <?php print $styles ?>
+    <?php print $scripts ?>
+</head>
+<body style="background-image: url(http://www.thedirt.org/background_dirt.jpg);" <?php print theme("onload_attribute"); ?>>
+<div id="header">
+ <center><table cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td colspan="7"><a href="/"><img src="/files/pics/Dirt/header.gif"></a></td>
+    </tr>
+    <tr>
+      <td><a href="/"><img src="/files/pics/Dirt/news.gif" border="0"></a></td>
+      <td><a href="/forum"><img src="/files/pics/Dirt/forums.gif" border="0"></a></td>
+      <td><a href="/calendar"><img src="/files/pics/Dirt/events.gif" border="0"></a></td>
+      <td><a href="/blog"><img src="/files/pics/Dirt/blogs.gif" border="0"></a></td>
+      <td><a href="/about"><img src="/files/pics/Dirt/about.gif" border="0"></a></td>
+      <td><a href="/resources"><img src="/files/pics/Dirt/resources.gif" border="0"></a></td>
+      <td><a href="/groups"><img src="/files/pics/Dirt/groups.gif" border="0"></a>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+    </tr>
+    <tr> <td colspan="2"><div><?php print $header ?></div></td></tr>
+    </table></center>
+</div>
+<table id="content">
+  <tr>
+    <?php if ($left != ""): ?>
+      <td class="sidebar" id="left">
+        <?php print $left ?>
+      </td>
+    <?php endif; ?>    
+        <td class="main-content" id="content-<?php print $layout ?>">
+        <?php if ($title != ""): ?>
+          <h2 class="content-title"><?php print $title ?></h2>
+        <?php endif; ?>
+        <?php if ($tabs != ""): ?>
+          <?php print $tabs ?>
+        <?php endif; ?>
+        
+        <?php if ($mission != ""): ?>
+          <div id="mission"><?php print $mission ?></div>
+        <?php endif; ?>
+        
+        <?php if ($help != ""): ?>
+          <p id="help"><?php print $help ?></p>
+        <?php endif; ?>
+        
+        <?php if ($messages != ""): ?>
+          <div id="message"><?php print $messages ?></div>
+        <?php endif; ?>
+        
+        <!-- start main content -->
+        <?php print($content) ?>
+        <!-- end main content -->
+        </td><!-- mainContent -->
+    <?php if ($right != ""): ?>
+    <td class="sidebar" id="right">
+        <?php print $right ?>
+    </td>
+    <?php endif; ?>
+  </tr>
+</table>
+<?php print $breadcrumb ?>
+<div id="footer">
+  <?php if ($footer_message) : ?>
+    <p><?php print $footer_message;?></p>
+  <?php endif; ?>
+</div><!-- footer -->
+ <?php print $closure;?>
+  </body>
+</html>
+

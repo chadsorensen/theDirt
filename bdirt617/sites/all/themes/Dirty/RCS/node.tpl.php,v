@@ -1,0 +1,42 @@
+head	1.1;
+access;
+symbols;
+locks
+	jeremy:1.1; strict;
+comment	@# @;
+
+
+1.1
+date	2005.10.13.22.18.24;	author jeremy;	state Exp;
+branches;
+next	;
+
+
+desc
+@hi
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@<div class="node<?php print ($sticky) ? " sticky" : ""; ?>">
+  <?php if ($page == 0): ?>
+    <h2><a href="<?php print $node_url ?>" title="<?php print $title ?>"><?php print $title ?></a></h2>
+  <?php endif; ?>
+  <?php print $picture ?>
+  <div class="info"><?php print $submitted ?></div>
+  <div class="content">
+  <?php print $content ?>
+  </div>
+<?php if ($links): ?>
+    <?php if ($picture): ?>
+      <br class='clear' />
+    <?php endif; ?>
+  <div class="links"><?php print $links ?></div>
+<?php endif; ?>
+<div class="terms">( categories: <?php print $terms ?> )</div>
+</div>
+@

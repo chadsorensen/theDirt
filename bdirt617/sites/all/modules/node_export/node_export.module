@@ -1,0 +1,133 @@
+<?php
+// $Id: node_export.module,v 1.1.2.1 2009/05/09 02:36:31 danielb Exp $
+
+/**
+ * Implementation of hook_help().
+ */
+function node_export_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#node_export':
+      $output = '<p>'. t('The Node export module allows users to export an existing node and then import it into another Drupal installation.') .'</p>';
+      $output .= '<p>'. t('Users with the "export node" permission can utilize this functionality. A new tab will appear on node pages with the word "Export".') .'</p>';
+      return $output;
+  }
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function node_export_perm() {
+  return array('export node', 'export bulk nodes', 'export own nodes', 'import nodes');
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function node_export_menu() {
+  $items['admin/settings/node_export'] = array(
+    'access arguments' => array('administer site configuration'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('node_export_settings'),
+    'title' => t('Export module'),
+    'file' => 'node_export.pages.inc',
+    'description' => t('Allows users to export (copy then edit) an existing node.'),
+  );
+  $items['node/%node/node_export'] = array(
+    'access callback' => 'node_export_access',
+    'access arguments' => array(1),
+    'page callback' => 'node_export_node_export',
+    'page arguments' => array(1),
+    'title' => t('Export'),
+    'weight' => 5,
+    'file' => 'node_export.pages.inc',
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['admin/content/import'] = array(
+    'access arguments' => array('import nodes'),
+    'page callback' => 'node_export_node_import',
+    'title' => t('Import'),
+    'file' => 'node_export.pages.inc',
+    'type' => MENU_NORMAL_ITEM,
+    'description' => t('Allows users to import a node from another site.'),
+  );
+  return $items;
+}
+
+function node_export_access($node) {
+  global $user;
+  // Check basic permissions first.
+  $access = (user_access('export node') || ($user->uid && ($node->uid == $user->uid) && user_access('export own nodes')));
+  // Make sure the user can view the original node content.
+  $access = $access && node_access('view', $node);
+  // Check additional conditions
+  $access = $access && (node_export_is_permitted($node->type) && filter_access($node->format) && node_access('create', $node->type));
+  // Let other modules alter this - for exmple to only allow some users
+  // to export specific nodes or types.
+  drupal_alter("node_export_access", $access, $node);
+  return $access;
+}
+
+function node_export_is_permitted($type) {
+  $omitted = variable_get('node_export_omitted', array());
+  return empty($omitted[$type]);
+}
+
+/**
+ * Implementation of hook_mode_type().
+ */
+function node_export_node_type($op, $type_obj) {
+
+  switch ($op) {
+    case 'delete':
+      variable_del('node_export_reset_'. $type_obj->type);
+      break;
+    case 'update':
+      if (!empty($type_obj->old_type) && $type_obj->old_type != $type_obj->type) {
+        if (variable_get('node_export_reset_'. $type_obj->old_type, FALSE)) {
+          variable_del('node_export_reset_'. $type_obj->old_type);
+          variable_set('node_export_reset_'. $type_obj->type, TRUE);
+        }
+      }
+      break;
+  }
+}
+
+/**
+ * Implementation of hook_views_api.
+ */
+function node_export_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'node_export') .'/views',
+  );
+}
+
+
+/**
+ * Implementation of hook_node_operations.
+ */
+function node_export_node_operations() {
+  $operations = array();
+  if (user_access('export bulk nodes')) {
+    $operations = array(
+      'node_export' => array(
+        'label' => t('Export nodes'),
+        'callback' => 'node_export_node_bulk',
+      ),
+    );
+  }
+  return $operations;
+}
+
+/**
+ * Callback for 'node_export' node operation.
+ */
+function node_export_node_bulk($nodes) {
+  module_load_include('inc', 'node_export', 'node_export.pages');
+  $node_codes = array();
+  foreach ($nodes as $nid) {
+    $node_codes[] = node_export_node_export(node_load($nid), TRUE, 1);
+  }
+  $node_code = "array(\n  ". implode(",\n  ", $node_codes) .",\n)";
+  drupal_set_message(drupal_get_form('node_export_form', $node_code));
+}

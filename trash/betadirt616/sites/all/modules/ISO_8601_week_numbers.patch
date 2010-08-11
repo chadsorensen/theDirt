@@ -1,0 +1,86 @@
+Common subdirectories: date/date and date-New/date
+diff -up date/date_api.module date-New/date_api.module
+--- date/date_api.module	2009-08-13 12:57:27.000000000 +0200
++++ date-New/date_api.module	2010-01-10 21:17:36.000000000 +0100
+@@ -1039,6 +1039,18 @@ function date_difference($date1_in, $dat
+  * chosen first day of week for this site.
+  */
+ function date_week_range($week, $year) {
++  if (variable_get('date_api_are_weeknumbers_iso8601', FALSE)) {
++    $last_week_of_year = date("W",strtotime(($year-1)."-"."12-31"));
++    $last_day_of_year  = date("w",strtotime(($year-1)."-"."12-31"));
++    if ($last_day_of_year > 3) {
++      if ($week == $last_week_of_year) {
++        $week=1;
++      }
++      else {
++	$week++;
++      }
++    }
++  }
+   $min_date = date_make_date($year .'-01-01 00:00:00', date_default_timezone_name());
+   date_timezone_set($min_date, date_default_timezone());
+ 
+@@ -1093,15 +1105,19 @@ function date_week($date) {
+   $year_week = intval(date_format($year_date, 'W'));
+   $date_year = intval(date_format($date, 'o'));
+ 
+-  // remove the leap week if it's present
+-  if ($date_year > intval($parts[0])) {
+-    $last_date = drupal_clone($date);
+-    date_modify($last_date, '-7 days');
+-    $week = date_format($last_date, 'W') + 1;
+-  } else if ($date_year < intval($parts[0])) {
+-    $week = 0;
++  // Underlying database functions produce ISO-8601 week numbers.
++  // If we aren't using ISO-8601 week numbers, adjust.
++  if (!variable_get('date_api_are_weeknumbers_iso8601', FALSE)) {
++    // remove the leap week if it's present
++    if ($date_year > intval($parts[0])) {
++      $last_date = drupal_clone($date);
++      date_modify($last_date, '-7 days');
++      $week = date_format($last_date, 'W') + 1;
++    } else if ($date_year < intval($parts[0])) {
++      $week = 0;
++    }
++    if ($year_week != 1) $week++;
+   }
+-  if ($year_week != 1) $week++;
+ 
+   // convert to ISO-8601 day number, to match weeks calculated above
+   $iso_first_day = 1 + (variable_get('date_first_day', 0) + 6) % 7;
+@@ -2391,6 +2407,8 @@ function date_api_system_modules_submit(
+  * This form section is now part of the form at 'admin/settings/date-time/formats'.
+  * We add the formats as values to the form to avoid errors on submission
+  * of the form when expected values are missing in system_date_time_settings_submit().
++ *
++ * Add a form element to configure whether or not week numbers are ISO-8601 (default: FALSE == US/UK/AUS norm).
+  */
+ function date_api_form_system_date_time_settings_alter(&$form, $form_state, $form_id = 'system_date_time_settings') {
+   include_once(drupal_get_path('module', 'date_api') .'/date_api.admin.inc');
+@@ -2404,6 +2422,13 @@ function date_api_form_system_date_time_
+       unset($form['date_formats'][$key]);
+     }
+   }
++  $form['locale']['date_api_are_weeknumbers_iso8601'] = array(
++    '#type'          => 'checkbox',
++    '#title'         => t('Use ISO-8601 week numbers'),
++    '#default_value' => variable_get('date_api_are_weeknumbers_iso8601', FALSE),
++    '#description'   => t('IMPORTANT! If checked, First day of week MUST be set to Monday'),
++  );
++  $form = system_settings_form($form);
+ }
+ 
+ /**
+Common subdirectories: date/date_locale and date-New/date_locale
+Common subdirectories: date/date_php4 and date-New/date_php4
+Common subdirectories: date/date_popup and date-New/date_popup
+Common subdirectories: date/date_repeat and date-New/date_repeat
+Common subdirectories: date/date_timezone and date-New/date_timezone
+Common subdirectories: date/date_tools and date-New/date_tools
+Common subdirectories: date/help and date-New/help
+Common subdirectories: date/images and date-New/images
+Common subdirectories: date/includes and date-New/includes
+Common subdirectories: date/tests and date-New/tests
+Common subdirectories: date/theme and date-New/theme
+Common subdirectories: date/translations and date-New/translations

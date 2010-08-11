@@ -1,0 +1,34 @@
+<?php
+// $Id: blockreference.install,v 1.1.4.3 2008/08/23 02:47:30 danielb Exp $
+
+/**
+ * Implementation of hook_install().
+ */
+function blockreference_install() {
+  content_notify('install', 'blockreference');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function blockreference_uninstall() {
+  content_notify('uninstall', 'blockreference');
+}
+
+/**
+ * Implementation of hook_enable().
+ *
+ * Notify content module when this module is enabled.
+ */
+function blockreference_enable() {
+  content_notify('enable', 'blockreference');
+}
+
+/**
+ * Implementation of hook_disable().
+ *
+ * Notify content module when this module is disabled.
+ */
+function blockreference_disable() {
+  content_notify('disable', 'blockreference');
+}

@@ -1,0 +1,5 @@
+me = Dirty
+description = Nitty Gritty Dirty Theme
+core = 6.x
+engine = phptemplate
+

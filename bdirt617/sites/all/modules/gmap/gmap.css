@@ -1,0 +1,35 @@
+/* IE VML Security issue fix.
+ * For more details, see:
+ * http://googlemapsapi.blogspot.com/2006/09/vml-security-issue.html
+ */
+v\:* {
+  behavior:url(#default#VML);
+}
+
+.gmap-popup{
+
+}
+
+.gmap-tooltip{
+   padding: 2px;
+   margin: 0;
+   border: solid black 1px;
+}
+
+.gmap-left {
+  float: left;
+}
+
+.gmap-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.gmap-right {
+  float: right;
+}
+
+.gmap-map {
+  /* Don't let long copyright texts stick out the side of the map div. */
+  overflow: hidden;
+}

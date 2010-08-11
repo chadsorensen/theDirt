@@ -1,0 +1,520 @@
+<?php
+// $Id: nicemap.module,v 1.3.2.1 2008/12/03 19:47:13 alexb Exp $
+
+/**
+ * Nicemap - A WMS client and map generator for Drupal
+ *
+ * This module stores a few variables
+ *
+ * nicemap_map_url     The base URL, with no querystring
+ * nicemap_c           A serialized array of pertinent information gleaned
+ *                      from ?request=GetCapabilities
+ *
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function nicemap_menu() {
+  $items = array();
+  $items['admin/settings/nicemap'] = array(
+    'title' => 'Nice map',
+    'description' => 'Test WMS servers with the Nice map module.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('nicemap_settings'),
+    'access arguments' => array('administer site configuration'),
+    'file' => 'nicemap_admin.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['admin/settings/nicemap/settings'] = array(
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'title' => 'Settings',
+    'weight' => -1,
+  );
+  $items['admin/settings/nicemap/cache'] = array(
+    'type' => MENU_LOCAL_TASK,
+    'title' => 'Clear cache',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('nicemap_cache_clear'),
+    'access arguments' => array('administer site configuration'),
+    'file' => 'nicemap_admin.inc',
+  );
+  return $items;
+}
+
+/**
+ * Implementation of hook_theme
+ */
+function nicemap_theme($existing, $type, $theme, $path) {
+  return array(
+    'nicemap_map' => array(
+      'file' => 'nicemap.theme.inc',
+      'arguments' => array('points' => array(), 'map' => array(), 'width' => 200, 'height' => 200),
+    ),
+    'nicemap_point' => array(
+      'file' => 'nicemap.theme.inc',
+      'arguments' => array('point' => array()),
+    ),
+    'nicemap_content' => array(
+      'file' => 'nicemap.theme.inc',
+      'arguments' => array('point' => array()),
+    ),
+    'nicemap_settings_layers' => array(
+      'file' => 'nicemap_admin.inc',
+      'arguments' => array('form' => array()),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_views_api
+ */
+function nicemap_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'nicemap') . '/views',
+  );
+}
+
+/**
+ * The raw nicemap compatibilities parsing function
+ * @param $base_url the base URL of the WMS server
+ * @return array on success, exception on error
+ */
+function nicemap_capabilities($base_url) {
+  $capabilities = $base_url .'?request=GetCapabilities&service=WMS';
+
+  // Supress errors caused by offline servers
+  $cxml = @simplexml_load_file($capabilities);
+
+  if (!$cxml) {
+    drupal_set_message('The WMS server could not be reached.');
+    return array();
+  }
+
+  //if ((float) $cxml['version'] < '1.1.1') {
+  //  throw new Exception('WMS Server verson must be 1.1.1. The specified server defined '.
+  //    $cxml['version'] .' instead.');
+  //}
+  //TODO: This could use more error checking
+  foreach ($cxml->Capability->Request->GetMap->Format as $f) {
+    $file_types[] = (String) $f;
+  }
+
+  // Overall info
+  $c['info'] = array(
+    'name' =>         (String) $cxml->Service->Name,
+    'title' =>        (String) $cxml->Service->Title,
+    'abstract' =>     (String) $cxml->Service->Abstract,
+    'filetypes' =>    (String) $file_types);
+
+  if ($layers = $cxml->Capability->Layer->Layer) {
+    // Master layer info
+    if (isset($cxml->Capability->Layer->CRS)) {
+      $c['crs'][] = (String) $cxml->Capability->Layer->CRS;
+    }
+    // Grab information particular to each layer
+    foreach ($layers as $l) {
+      $c['layers'][(String) $l->Name] = array(
+        'title' => (String) $l->Title,
+        'bounds' =>
+          array(
+            'minx' => (float) $l->LatLonBoundingBox['minx'],
+            'miny' => (float) $l->LatLonBoundingBox['miny'],
+            'maxx' => (float) $l->LatLonBoundingBox['maxx'],
+            'maxy' => (float) $l->LatLonBoundingBox['maxy']),
+        );
+        if ((String) $l->SRS) {
+          $c['layers'][(String) $l->Name]['srs'] =  (String) $l->SRS;
+        }
+        if ($l->Style) {
+          foreach ($l->Style as $style) {
+            $c['layers'][(String) $l->Name]['styles'][(String) $style->Name] = (String) $style->Title;
+          }
+          // Sort styles
+          ksort($c['layers'][(String) $l->Name]['styles']);
+        }
+    }
+  }
+  return $c;
+}
+
+/**
+ * A proxy to the nicemap compatibilities cache
+ * @param $base_url the base URL of the WMS server
+ * @return array on success, false on error
+ */
+function nicemap_capabilities_cache($base_url = NULL, $reset = false) {
+  $base_url = $base_url ? $base_url : variable_get('nicemap_wms_url', '');
+  $cache = variable_get('nicemap_cache', array());
+  if (!isset($cache[$base_url]) || $reset) {
+    $cache[$base_url] = nicemap_capabilities($base_url);
+    variable_set('nicemap_cache', $cache);
+  }
+  return $cache[$base_url];
+}
+
+/**
+ * Helper function to retrieve layers & style information and order by custom weight.
+ */
+function _nicemap_get_layers($spec = NULL) {
+  $layers = array();
+  if ($spec) {
+    if (count($spec['layers'])) {
+      $layers = $spec['layers'];
+      $weights = variable_get('nicemap_wms_weights', array());
+      foreach ($weights as $layer => $weight) {
+        if (isset($layers[$layer])) {
+          $layers[$layer]['#weight'] = $weight;
+        }
+      }
+    }
+  }
+  else {
+    $styles = variable_get('nicemap_wms_styles', array());
+    $weights = variable_get('nicemap_wms_weights', array());
+    foreach (variable_get('nicemap_wms_layers', array()) as $layer => $enabled) {
+      if ($enabled) {
+        $layers[$layer] = array(
+          'style' => $styles[$layer],
+          '#weight' => isset($weights[$layer]) ? $weights[$layer] : 0,
+        );
+      }
+    }
+  }
+  uasort($layers, 'element_sort');
+  return $layers;
+}
+
+/**
+ * Helper function that provides a new projection object.
+ */
+function nicemap_map_projection($type) {
+  switch ($type) {
+    case 'equirectangular':
+      $projection = new nicemap_equirectangular_projection();
+      return $projection;
+    case 'mercator':
+      $projection = new nicemap_mercator_projection();
+      return $projection;
+  }
+  return false;
+}
+
+/**
+ * Helper function that determines the correct projection.
+ */
+function nicemap_get_projection() {
+  $projections = nicemap_projections();
+
+  switch (variable_get('nicemap_mode', '')) {
+    case 'wms':
+      $p = variable_get('nicemap_wms_crs', false);
+      break;
+    case 'file':
+      $p = variable_get('nicemap_file_projection', false);
+      break;
+  }
+
+  if ($p && isset($projections[$p])) {
+    return new $projections[$p]['class']();
+  }
+  return false;
+}
+
+/**
+ * Provides an array of projection options -- usable for form selects.
+ */
+function nicemap_projections() {
+  return array(
+    'EPSG:3395' => array(
+      'mercator' => t('Mercator'),
+      'class' => 'nicemap_mercator_projection',
+    ),
+    'EPSG:4326' => array(
+      'name' => t('Equirectangular'),
+      'class' => 'nicemap_equirectangular_projection',
+    ),
+    'EPSG:900913' => array(
+      'mercator' => t('Google Mercator'),
+      'class' => 'nicemap_mercator_projection', // Don't have a definition yet, so we fall back.
+    ),
+  );
+}
+
+/**
+ * A map object.
+ */
+class nicemap_map {
+
+  public $server;
+  public $bgcolor;
+  public $layers = array();
+  public $styles = array();
+  public $bounds = array();
+  public $projection;
+
+  function __construct($load_layers = true) {
+    $this->bgcolor = variable_get('nicemap_wms_bgcolor', '');
+    $this->server = variable_get('nicemap_wms_url', '');
+    $this->projection = nicemap_get_projection();
+
+    if ($load_layers) {
+      foreach (_nicemap_get_layers() as $layer => $info) {
+        $this->layers[] = $layer;
+        $this->styles[] = $info['style'];
+      }
+    }
+  }
+
+  /**
+   * Expand or contract map as needed given coordinates and the desired pixel size
+   *
+   * @param $items
+   *   Array of items to display on the map
+   * @param $target
+   *   Array, target size of map
+   *
+   * @return
+   *   Trimmed array of items to display on the map.
+   */
+  function process($items, $target = array()) {
+    // Preserve original map bounds.
+    $orig_map = $this->bounds;
+    $this->bounds = $this->projection->getmap($this->bounds, $target);
+
+    $points = array();
+    foreach ($items as $item) {
+      if (
+        $item['lat'] > $orig_map['miny'] &&
+        $item['lat'] < $orig_map['maxy'] &&
+        $item['lon'] > $orig_map['minx'] &&
+        $item['lon'] < $orig_map['maxx']
+      ) {
+        list($x, $y) = $this->projection->getpoint($this->bounds, $item);
+        $ratio['y'] = $y / $this->bounds['h'];
+        $ratio['x'] = $x / $this->bounds['w'];
+        $y = 100 - (100 * $ratio['y']);
+        $x = 100 * $ratio['x'];
+        $item['x'] = $x;
+        $item['y'] = $y;
+        $points[] = $item;
+      }
+    }
+    return $points;
+  }
+
+  /**
+   * Generate a new map URL
+   *
+   * TODO Allow options to override.
+   */
+  function url($options = array()) {
+    if ($this->server) {
+      if ($this->styles) {
+        $options['styles'] = implode(',', $this->styles);
+      }
+      if ($this->bgcolor) {
+        $options['bgcolor'] = '0x'. $this->bgcolor;
+      }
+      $options['request'] = 'GetMap';
+      $options['version'] = '1.1.1';
+      $options['format'] = 'image/png';
+      $options['layers'] = implode(',', $this->layers);
+
+      // For now, grab SRS from variables
+      $options['srs'] = variable_get('nicemap_wms_crs', 'EPSG:900913');
+      $options['EXCEPTIONS'] = 'application/vnd.ogc.se_inimage';
+      $options['bbox'] = $this->bounds['minx'].','.$this->bounds['miny'].','.$this->bounds['maxx'].','.$this->bounds['maxy'];
+      $url = array();
+      foreach ($options as $flag => $val) {
+        $url[] = $flag ."=". $val;
+      }
+      $url = implode('&', $url);
+      return url($this->server, array('query' => $url, 'fragment' => null, 'absolute' => TRUE));
+    }
+    else {
+      return;
+    }
+  }
+}
+
+/**
+ * Interface for nicemap map projections.
+ */
+interface nicemap_projection {
+  /**
+   * Get map takes a boundry array and a target size and generates usable coordinates.
+   *
+   * @param $map
+   * @param $target
+   *
+   * @return
+   *   a treated map array
+   */
+  public function getmap($map, $target);
+
+  /**
+   * Get point plots a point on a map.
+   *
+   * @param $map
+   * @param $item
+   *
+   * @return
+   *   a two element array of x, y.
+   */
+  public function getpoint($map, $item);
+}
+
+/**
+ * Provides a mercator projection for nicemap.
+ */
+class nicemap_mercator_projection implements nicemap_projection {
+
+  public function getmap($map, $target) {
+    // create height in terms of mercator projection
+    // and set an origin height coordinate
+    $map['w'] = deg2rad($map['maxx']) - deg2rad($map['minx']);
+    $map['h'] = asinh(tan(deg2rad($map['maxy']))) - asinh(tan(deg2rad($map['miny'])));
+    $map['o'] = asinh(tan(deg2rad($map['miny'])));
+    $map['ratio'] = $map['w'] / $map['h'];
+
+    if (count($target)) {
+      $target['ratio'] = $target['width'] / $target['height'];
+      // target is wider than map
+      if ($target['ratio'] >= $map['ratio']) {
+        // calculate new width from ratio
+        $new_w = $map['h'] * $target['ratio'];
+
+        // Adjust longitudes
+
+        // We resize the map sides in radians
+        $map['minx'] = deg2rad($map['minx']) - ($new_w - $map['w']) * .5;
+        $map['maxx'] = deg2rad($map['maxx']) + ($new_w - $map['w']) * .5;
+
+        // Check to see whether the boundaries are past +-180deg bounds (pi radians)
+        // If they are, pull it in to 180deg and compensate the difference on the other bound.
+
+        // If both bounds are over the limit, we set to -180 to 180 -- at least the map will not totally break...
+        if (($map['minx'] < (M_PI * -1)) && ($map['maxx'] > M_PI)) {
+          $map['minx'] = M_PI * -1;
+          $map['maxx'] = M_PI;
+        }
+        else if ($map['minx'] < (M_PI * -1)) {
+          $diff = $map['minx'] - (M_PI * -1);
+          $map['minx'] = $map['minx'] - $diff;
+          $map['maxx'] = $map['maxx'] - $diff;
+        }
+        else if ($map['maxx'] > M_PI) {
+          $diff = ($map['maxx'] - M_PI);
+          $map['maxx'] = $map['maxx'] - $diff;
+          $map['minx'] = $map['minx'] - $diff;
+        }
+
+        // Convert bounds to degrees
+        $map['miny'] = rad2deg($map['miny']);
+        $map['maxy'] = rad2deg($map['maxy']);
+
+        // overwrite width + ratio
+        $map['w'] = $new_w;
+        $map['ratio'] = $target['ratio'];
+      }
+      // target is taller than map
+      else {
+        // 1. we know the map is wide enough
+        // 2. we need to find the necessary radian height to match ratios
+        // 3. once we have the radian height, we need to adjust the bounding latitudes
+        // @TODO: make sure that we don't adjust past the poles...
+
+        // subtract half the height from top to find midpoint
+        $midpoint = asinh(tan(deg2rad($map['maxy']))) - ($map['h']*.5);
+
+        // set map height to match target height
+        $map['h'] = $map['w'] / $target['ratio']; // 2
+
+        // find origin in radians
+        $map['o'] = $midpoint - ($map['h']*.5);
+
+        // find new latitude bounds by converting radian bounds to mercator degrees
+        $map['maxy'] = rad2deg(atan(sinh($midpoint + ($map['h']*.5))));
+        $map['miny'] = rad2deg(atan(sinh($midpoint - ($map['h']*.5))));
+      }
+    }
+    $map['ratio'] = $map['w'] / $map['h'];
+
+    return $map;
+  }
+
+  public function getpoint($map, $item) {
+    $y = asinh(tan(deg2rad($item['lat']))) - $map['o'];
+    $x = deg2rad($item['lon']) - deg2rad($map['minx']);
+
+    return array($x, $y);
+  }
+}
+
+/**
+ * Provides a equirectangular projection for nicemap.
+ *
+ * Simply convert all degrees into radians and press "ALL SYSTEMS GO"
+ *
+ * TODO test!
+ */
+class nicemap_equirectangular_projection implements nicemap_projection {
+
+  public function getmap($map, $target) {
+    $map['w'] = deg2rad($map['maxx']) - deg2rad($map['minx']);
+    $map['h'] = deg2rad($map['maxy']) - deg2rad($map['miny']);
+
+    $map['o'] = deg2rad($map['miny']);
+    $map['ratio'] = $map['w'] / $map['h'];
+
+    if (count($target)) {
+      $target['ratio'] = $target['width'] / $target['height'];
+      // target is wider than map
+      if ($target['ratio'] >= $map['ratio']) {
+
+        // calculate new width from ratio
+        $new_w = $map['h'] * $target['ratio'];
+
+        // adjust longitudes
+        $map['minx'] = $map['minx'] - rad2deg(($new_w - $map['w']) * .5);
+        $map['maxx'] = $map['maxx'] + rad2deg(($new_w - $map['w']) * .5);
+        $map['minx'] = ($map['minx'] < -180) ? $map['minx'] = -179.99 : $map['minx'];
+        $map['maxx'] = ($map['maxx'] >  180) ? $map['maxx'] =  179.99 : $map['maxx'];
+
+        // overwrite width + ratio
+        $map['w'] = $new_w;
+        $map['ratio'] = $target['ratio'];
+      }
+      // target is taller than map
+      else {
+        // 1. we know the map is wide enough
+        // 2. we need to find the necessary radian height to match ratios
+        // 3. once we have the radian height, we need to adjust the bounding latitudes
+
+        // subtract half the height from top to find midpoint
+        $midpoint = $map['maxy'] - (rad2deg($map['h'])*.5);
+
+        // set map height to match target height
+        $map['h'] = $map['w'] / $target['ratio']; // 2
+
+        // find origin in radians
+        $map['o'] = deg2rad($midpoint) - ($map['h']*.5);
+
+        // find new latitude bounds by converting radian bounds to mercator degrees
+        $map['maxy'] = $midpoint + rad2deg($map['h']*.5);
+        $map['miny'] = $midpoint - rad2deg($map['h']*.5);
+      }
+    }
+    $map['ratio'] = $map['w'] / $map['h'];
+    return $map;
+  }
+
+  public function getpoint($map, $item) {
+    $x = deg2rad($item['lon']) - deg2rad($map['minx']);
+    $y = deg2rad($item['lat']) - $map['o'];
+
+    return array($x, $y);
+  }
+}

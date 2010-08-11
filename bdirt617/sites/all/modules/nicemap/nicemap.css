@@ -1,0 +1,99 @@
+/* FULL MAP */
+.nicemap-map {
+  position:relative;
+  background-repeat:no-repeat;
+  background-position:0px 0px;
+}
+
+.nicemap-map .hidden {
+  display:block;
+}
+
+.nicemap-map div.geoitem {
+  visibility:hidden;
+  position:absolute;
+  width:20em; padding: 1em; margin-left: -11em;
+  background:#fff;
+  left: 50%; top:50%;
+}
+
+.nicemap-map div.geoitem span.close {
+  cursor:pointer;
+  position:absolute; right:0px; top:0px;
+}
+
+.nicemap-map a.geopoint {
+  cursor:pointer;
+  width:10px;
+  height:10px;
+  margin-top:-5px;
+  margin-left:-5px;
+  background:url(images/map_point.png) 50% 50% no-repeat;
+  display:block;
+  position:absolute;
+}
+
+.nicemap-map a.dim {
+  background-image: url(images/map_point_dim.png);
+}
+
+.nicemap-map a.geopoint span {
+  z-index:1;
+  display:none;
+  position:absolute;
+  right:50%;
+  bottom:50%;
+  font-size:11px;
+  background:#fff;
+  padding:2px 4px;
+  width:100px;
+}
+
+.nicemap-map a.geopoint:hover span {
+  display:block;
+}
+
+.nicemap-map a.weight-0,
+.nicemap-map a.weight-1,
+.nicemap-map a.weight-2 {
+  width:10px; height:10px;
+  margin-top:-5px; margin-left:-5px;
+  background:url(images/map_point1.png) 50% 50% no-repeat;
+}
+
+.nicemap-map a.weight-3,
+.nicemap-map a.weight-4,
+.nicemap-map a.weight-5 {
+  z-index:1;
+  width:10px; height:10px;
+  margin-top:-5px; margin-left:-5px;
+  background:url(images/map_point2.png) 50% 50% no-repeat;
+}
+
+.nicemap-map a.weight-6,
+.nicemap-map a.weight-7,
+.nicemap-map a.weight-8 {
+  z-index:2;
+  width:19px; height:19px;
+  margin-top:-9px; margin-left:-9px;
+  background:url(images/map_point3.png) 50% 50% no-repeat;
+}
+
+.nicemap-map a.weight-9,
+.nicemap-map a.weight-10 {
+  z-index:3;
+  width:25px; height:25px;
+  margin-top:-12px; margin-left:-12px;
+  background:url(images/map_point4.png) 50% 50% no-repeat;
+}
+
+.nicemap-map a.weight-6 span,
+.nicemap-map a.weight-7 span,
+.nicemap-map a.weight-8 span {
+  z-index:4;
+  right:9px; bottom:9px;}
+
+.nicemap-map a.weight-9 span,
+.nicemap-map a.weight-10 span {
+  z-index:4;
+  right:15px; bottom:15px;}

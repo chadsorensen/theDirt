@@ -1,0 +1,10 @@
+; $Id: node_export.info,v 1.1.2.3 2009/06/21 23:46:49 danielb Exp $
+name = Node Export
+description = "Allows users to export a node and the import into another Drupal installation."
+core = 6.x
+; Information added by drupal.org packaging script on 2009-06-25
+version = "6.x-2.13"
+core = "6.x"
+project = "node_export"
+datestamp = "1245930964"
+
