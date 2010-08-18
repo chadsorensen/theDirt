@@ -89,7 +89,7 @@
  *   $db_url = 'mysqli://username:password@localhost/databasename';
  *   $db_url = 'pgsql://username:password@localhost/databasename';
  */
-$db_url = 'mysql://dirtnerdsdb:Be3rMe$@mysql.thedirt.org/dirtnerds_r3';
+$db_url = 'mysql://dirtnerdsdb:Be3rMe$@localhost/dirtnerds_r3';
 $db_prefix = '';
 
 /**
@@ -123,7 +123,7 @@ $update_free_access = FALSE;
  * It is not allowed to have a trailing slash; Drupal will add it
  * for you.
  */
-$base_url = 'http://beta.thedirt.org';  // NO trailing slash!
+$base_url = 'http://localhost/theDirt/bdirt617';  // NO trailing slash!
 
 /**
  * PHP settings:
